@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: #0e0c0a;
+    color: #f5f0e8;
+  }
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0e0c0a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #7a6340;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* Decorative gold rule before section labels */
+  .sec-label::before {
+    content: "";
+    width: 32px;
+    height: 1px;
+    background: #c9a96e;
+    display: inline-block;
+  }
+  .sec-label-center::before {
+    display: none;
+  }
+  .hero-eyebrow::before {
+    content: "";
+    width: 40px;
+    height: 1px;
+    background: #c9a96e;
+    display: inline-block;
+  }
+
+  /* Nav link underline animation */
+  .nav-link {
+    position: relative;
+  }
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: #c9a96e;
+    transition: width 0.3s;
+  }
+  .nav-link:hover::after {
+    width: 100%;
+  }
+
+  /* Image zoom on hover */
+  .img-zoom img {
+    transition: transform 0.6s ease, filter 0.35s;
+  }
+  .img-zoom:hover img {
+    transform: scale(1.06);
+    filter: brightness(0.92) saturate(1.05);
+  }
+
+  /* Hero cell slow zoom on hover */
+  .hero-cell img {
+    transition: transform 7s ease, filter 0.4s;
+  }
+  .hero-cell:hover img {
+    transform: scale(1.06);
+    filter: brightness(0.88) saturate(1.05);
+  }
+
+  /* Masonry gallery via CSS columns */
+  .masonry {
+    columns: 3;
+    column-gap: 8px;
+  }
+  .masonry > * {
+    break-inside: avoid;
+    margin-bottom: 8px;
+  }
+  @media (max-width: 960px) {
+    .masonry {
+      columns: 2;
+    }
+  }
+
+  /* Btn-ghost arrow */
+  .btn-ghost::after {
+    content: "→";
+    font-size: 14px;
+    margin-left: 4px;
+  }
+
+  /* Feats list bullet */
+  .pkg-feat::before {
+    content: "◆";
+    font-size: 6px;
+    color: #c9a96e;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Form input chrome */
+  .f-input {
+    background: #161210;
+    border: 1px solid rgba(201, 169, 110, 0.15);
+    color: #f5f0e8;
+    padding: 14px 18px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+    font-family: inherit;
+  }
+  .f-input:focus {
+    border-color: #7a6340;
+  }
+  .f-input::placeholder {
+    color: #7a6340;
+    font-size: 13px;
+  }
+  .f-input-area {
+    min-height: 140px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+}

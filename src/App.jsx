@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /* ─────────────────────────────────────────────
    DATA
@@ -142,28 +142,46 @@ export default function App() {
   const [filter, setFilter]     = useState("All");
   const [showAll, setShowAll]   = useState(false);
   const [lb, setLb]             = useState({ open: false, idx: 0, items: [] });
+  const [menuOpen, setMenuOpen] = useState(false);
   const [done, setDone]         = useState(false);
   const [form, setForm]         = useState({ name: "", partner: "", email: "", date: "", type: "", message: "" });
+  const lbReturnFocus           = useRef(null);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", fn);
+    window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
   useEffect(() => {
-    if (!lb.open) return;
+    if (!lb.open && !menuOpen) return;
     const fn = (e) => {
+      if (e.key === "Escape") {
+        if (lb.open) closeLb();
+        else if (menuOpen) setMenuOpen(false);
+      }
+      if (!lb.open) return;
       if (e.key === "ArrowRight") nav(1);
       if (e.key === "ArrowLeft")  nav(-1);
-      if (e.key === "Escape")     closeLb();
     };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
-  });
+  }, [lb.open, menuOpen]);
 
-  const openLb  = (items, idx) => setLb({ open: true, idx, items });
-  const closeLb = () => setLb((l) => ({ ...l, open: false }));
+  useEffect(() => {
+    const lock = lb.open || menuOpen;
+    document.body.style.overflow = lock ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [lb.open, menuOpen]);
+
+  const openLb  = (items, idx, el) => {
+    lbReturnFocus.current = el ?? null;
+    setLb({ open: true, idx, items });
+  };
+  const closeLb = () => {
+    setLb((l) => ({ ...l, open: false }));
+    setTimeout(() => lbReturnFocus.current?.focus(), 0);
+  };
   const nav     = (d) => setLb((l) => ({ ...l, idx: (l.idx + d + l.items.length) % l.items.length }));
 
   const filtered = filter === "All" ? GALLERY : GALLERY.filter((i) => i.cat === filter);
@@ -207,15 +225,81 @@ export default function App() {
         </ul>
         <a
           href="#contact"
-          className="text-[11px] tracking-[0.18em] uppercase border border-line-strong text-gold px-6 py-2.5 no-underline transition-colors hover:bg-gold hover:text-bg"
+          className="hidden md:inline-block text-[11px] tracking-[0.18em] uppercase border border-line-strong text-gold px-6 py-2.5 no-underline transition-colors hover:bg-gold hover:text-bg"
         >
           Book a Consultation
         </a>
+        <button
+          type="button"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-menu"
+          className="md:hidden w-10 h-10 flex flex-col items-center justify-center gap-[5px] border border-line-strong text-gold"
+        >
+          <span className="block w-4 h-px bg-gold" />
+          <span className="block w-4 h-px bg-gold" />
+          <span className="block w-4 h-px bg-gold" />
+        </button>
       </nav>
+
+      {/* MOBILE MENU */}
+      <div
+        id="mobile-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site navigation"
+        className={`md:hidden fixed inset-0 z-[300] bg-bg/95 backdrop-blur-md flex flex-col items-center justify-center transition-opacity duration-300 ${
+          menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setMenuOpen(false)}
+          aria-label="Close menu"
+          className="absolute top-7 right-6 text-3xl text-gold bg-transparent border-none cursor-pointer font-extralight leading-none"
+        >
+          ×
+        </button>
+        <ul className="flex flex-col gap-7 items-center mb-12 list-none">
+          {[
+            { href: "#collections", label: "Portfolio" },
+            { href: "#about",       label: "About" },
+            { href: "#packages",    label: "Investment" },
+            { href: "#contact",     label: "Contact" },
+          ].map((l) => (
+            <li key={l.href}>
+              <a
+                href={l.href}
+                onClick={() => setMenuOpen(false)}
+                className="text-[15px] tracking-[0.22em] uppercase text-ink-muted no-underline transition-colors hover:text-gold-light"
+              >
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+        <a
+          href="#contact"
+          onClick={() => setMenuOpen(false)}
+          className="text-[11px] tracking-[0.18em] uppercase border border-line-strong text-gold px-8 py-3 no-underline transition-colors hover:bg-gold hover:text-bg"
+        >
+          Book a Consultation
+        </a>
+      </div>
 
       {/* HERO */}
       <section id="top" className="min-h-screen grid md:grid-cols-2 grid-cols-1 overflow-hidden">
-        <div className="flex flex-col justify-center z-[2] px-7 md:px-20 pt-[140px] md:pt-[160px] pb-20">
+        <div className="md:hidden relative h-[60vh] overflow-hidden">
+          <img
+            src={HERO[0]}
+            alt="Bride and groom in soft light"
+            loading="eager"
+            className="w-full h-full object-cover brightness-[0.6] saturate-[0.9]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-bg/40 via-transparent to-bg" />
+        </div>
+        <div className="flex flex-col justify-center z-[2] px-7 md:px-20 pt-12 md:pt-[160px] pb-20">
           <p className="hero-eyebrow text-[11px] tracking-[0.25em] uppercase text-gold mb-8 flex items-center gap-4">
             Fine Art Wedding &amp; Portrait Photography
           </p>
@@ -349,10 +433,12 @@ export default function App() {
 
         <div className="masonry">
           {visible.map((item, i) => (
-            <div
+            <button
+              type="button"
               key={`${filter}-${i}`}
-              onClick={() => openLb(filtered, filtered.indexOf(item))}
-              className="relative overflow-hidden cursor-pointer group"
+              onClick={(e) => openLb(filtered, filtered.indexOf(item), e.currentTarget)}
+              aria-label={`Open ${item.title} — ${item.tag}`}
+              className="relative overflow-hidden group block w-full text-left bg-transparent border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             >
               <img
                 src={item.src}
@@ -364,7 +450,7 @@ export default function App() {
                 <div className="font-serif text-base text-ink">{item.title}</div>
                 <div className="text-[9px] tracking-[0.18em] uppercase text-gold mt-1">{item.tag}</div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -487,7 +573,7 @@ export default function App() {
           {PACKAGES.map((p, i) => (
             <div
               key={i}
-              className={`relative px-11 py-13 border transition-colors p-11 ${
+              className={`relative p-11 border transition-colors ${
                 p.feat
                   ? "bg-surface2 border-gold-dim"
                   : "bg-surface border-line hover:border-line-strong"
@@ -596,10 +682,10 @@ export default function App() {
             Begin your<br />
             <em className="italic text-gold-light">story with us.</em>
           </h2>
-          <p className="text-[15px] leading-[1.8] text-ink-muted my-6 mb-13">
+          <p className="text-[15px] leading-[1.8] text-ink-muted mt-6 mb-12">
             We'd love to hear about your vision. Every inquiry receives a personal response within 24 hours. We are currently accepting bookings for 2026 and 2027.
           </p>
-          <div className="flex flex-col gap-6 mt-13">
+          <div className="flex flex-col gap-6 mt-12">
             {[
               { icon: "✦", label: "Email",         val: "hello@lumierestudio.com" },
               { icon: "◎", label: "Studio",        val: "Paris · New York · London\nAvailable worldwide" },
@@ -637,26 +723,27 @@ export default function App() {
             <form className="flex flex-col gap-5" onSubmit={fs}>
               <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] tracking-[0.2em] uppercase text-gold">Your Name</label>
-                  <input name="name" className="f-input" placeholder="Elena Marchetti" value={form.name} onChange={fc} required />
+                  <label htmlFor="f-name" className="text-[10px] tracking-[0.2em] uppercase text-gold">Your Name</label>
+                  <input id="f-name" name="name" className="f-input" placeholder="Elena Marchetti" value={form.name} onChange={fc} required />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] tracking-[0.2em] uppercase text-gold">Partner's Name</label>
-                  <input name="partner" className="f-input" placeholder="Marco Ricci" value={form.partner} onChange={fc} />
+                  <label htmlFor="f-partner" className="text-[10px] tracking-[0.2em] uppercase text-gold">Partner's Name</label>
+                  <input id="f-partner" name="partner" className="f-input" placeholder="Marco Ricci" value={form.partner} onChange={fc} />
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] tracking-[0.2em] uppercase text-gold">Email Address</label>
-                <input name="email" type="email" className="f-input" placeholder="hello@youremail.com" value={form.email} onChange={fc} required />
+                <label htmlFor="f-email" className="text-[10px] tracking-[0.2em] uppercase text-gold">Email Address</label>
+                <input id="f-email" name="email" type="email" className="f-input" placeholder="hello@youremail.com" value={form.email} onChange={fc} required />
               </div>
               <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] tracking-[0.2em] uppercase text-gold">Event Date</label>
-                  <input name="date" className="f-input" placeholder="June 2026" value={form.date} onChange={fc} />
+                  <label htmlFor="f-date" className="text-[10px] tracking-[0.2em] uppercase text-gold">Event Date</label>
+                  <input id="f-date" name="date" className="f-input" placeholder="June 2026" value={form.date} onChange={fc} />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] tracking-[0.2em] uppercase text-gold">Session Type</label>
+                  <label htmlFor="f-type" className="text-[10px] tracking-[0.2em] uppercase text-gold">Session Type</label>
                   <select
+                    id="f-type"
                     name="type"
                     className="f-input"
                     value={form.type}
@@ -673,8 +760,9 @@ export default function App() {
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] tracking-[0.2em] uppercase text-gold">Your Vision</label>
+                <label htmlFor="f-message" className="text-[10px] tracking-[0.2em] uppercase text-gold">Your Vision</label>
                 <textarea
+                  id="f-message"
                   name="message"
                   className="f-input f-input-area"
                   placeholder="Share your story, venue ideas, and anything that feels important…"
@@ -753,6 +841,10 @@ export default function App() {
 
       {/* LIGHTBOX */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={lb.items[lb.idx] ? `Image viewer — ${lb.items[lb.idx].title}` : "Image viewer"}
+        aria-hidden={!lb.open}
         className={`fixed inset-0 z-[1000] bg-[rgba(5,4,3,0.97)] flex items-center justify-center transition-opacity duration-300 ${
           lb.open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
